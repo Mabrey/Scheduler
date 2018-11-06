@@ -1,11 +1,40 @@
 const express = require('express');
 const bodyParser = require('body-parser');
 
+const bcrypt = require('bcrypt');
+const saltRounds = 10;
+
 const app = express();
 const port = process.env.PORT || 5000;
 
+const sqlite3 = require('sqlite3').verbose();
+
+
+
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+
+let connectToDatabase = () => {
+  
+  let db = new sqlite3.Database('./db/scheduler.db', (err) => {
+    if (err) {
+      return console.error(err.message);
+    }
+
+    console.log('Connected to DB');
+    })
+  return db;
+ };
+
+let hash = (password) => {
+  bcrypt.genSalt(saltRounds, function(err, salt) {
+    bcrypt.hash(password, salt, function(err, hash) {
+      let db = connectToDatabase();
+      
+        return hash;// Store hash in your password DB.
+    });
+});
+};
 
 app.get('/api/hello', (req, res) => {
   res.send({ express: 'Hello From Express' });
@@ -18,11 +47,15 @@ app.post('/api/world', (req, res) => {
   );
 });
 
-app.post('/api/fuckYou', (req,res) =>{
-    console.log(req.body);
+app.post('/api/returnLogin', (req,res) =>{
+    let hashedPassword = hash(req.body.login.password);
+    console.log(hashedPassword);
     res.send(
-        'Server says: fuck you'
+        `Username: ${req.body.login.username} and Password: \"${hashedPassword}\"`
     );
 });
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
+
+
+

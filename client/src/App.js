@@ -1,5 +1,5 @@
 import React, { Component } from 'react';
-import logo from './logo.svg';
+//import logo from './logo.svg';
 import './App.css';
 
 class App extends Component {
@@ -7,7 +7,11 @@ class App extends Component {
   state = {
     response: '',
     post: '',
-    responseToPost: ''
+    responseToPost: '',
+    login: {
+      username: '',
+      password: ''
+    }
   };
 
   componentDidMount() {
@@ -40,35 +44,58 @@ class App extends Component {
     this.setState({responseToPost: body});
   };
 
+  LoginAttempt = async e => {
+    e.preventDefault();
+    const response = await fetch('/api/returnLogin', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({login:this.state.login}),
+    });
+    const body = await response.text();
+    
+    this.setState({responseToPost: body});
+  };
+
+
   render() {
     return (
       <div className="App">
         <header className="App-header">
-          <img src={logo} className="App-logo" alt="logo" />
           <p>
-            Edit <code>src/App.js</code> and save to reload.
+            Thank you for using My App! 
           </p>
-          <a
-            className="App-link"
-            href="https://reactjs.org"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Learn React
-          </a>
         </header>
 
-        <p>{this.state.response}</p>
-        <form onSubmit={this.handleSubmit}>
-          <p>
-            <strong>Post to Server:</strong>
-          </p>
+        
+        <form onSubmit={this.LoginAttempt}>
+          <p>Username:</p>
           <input
+            id = "username"
             type="text"
-            value={this.state.post}
-            onChange={e=>this.setState({ post: e.target.value })}
+            value={this.state.login.username}
+            onChange={e=>this.setState({
+              login:{
+                ...this.state.login,
+                username: e.target.value
+              }
+            })}
           />
-          <button type="submit">Submit</button>
+          <p>Password:</p>
+          <input
+            id = "password"
+            type="password"
+            value={this.state.login.password}
+            onChange={e=>this.setState({
+              login:{
+                ...this.state.login,
+                password: e.target.value
+              }
+            })}
+          />
+          <br/>
+          <button type="submit">Login</button>
         </form>
         <p>{this.state.responseToPost}</p>
       </div>
