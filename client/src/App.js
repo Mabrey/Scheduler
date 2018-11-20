@@ -8,7 +8,7 @@ class App extends Component {
     response: '',
     post: '',
     responseToPost: '',
-    login: {
+    credentials: {
       username: '',
       password: ''
     }
@@ -18,8 +18,7 @@ class App extends Component {
     this.callApi()
       .then(res => this.setState({response: res.express}))
       .catch(err => console.log(err));
-  }
-
+  };
 
   callApi = async () => {
     const response = await fetch('/api/hello');
@@ -51,13 +50,26 @@ class App extends Component {
       headers: {
         'Content-Type': 'application/json',
       },
-      body: JSON.stringify({login:this.state.login}),
+      body: JSON.stringify({credentials:this.state.credentials}),
     });
     const body = await response.text();
     
     this.setState({responseToPost: body});
   };
 
+  createAccount = async e => {
+    e.preventDefault();
+    const response = await fetch('/api/createAccount', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({credentials:this.state.credentials}),
+    });
+    const body = await response.text();
+
+    this.setState({responseToPost: body});
+  }
 
   render() {
     return (
@@ -74,10 +86,10 @@ class App extends Component {
           <input
             id = "username"
             type="text"
-            value={this.state.login.username}
+            value={this.state.credentials.username}
             onChange={e=>this.setState({
-              login:{
-                ...this.state.login,
+              credentials:{
+                ...this.state.credentials,
                 username: e.target.value
               }
             })}
@@ -86,16 +98,18 @@ class App extends Component {
           <input
             id = "password"
             type="password"
-            value={this.state.login.password}
+            value={this.state.credentials.password}
             onChange={e=>this.setState({
-              login:{
-                ...this.state.login,
+              credentials:{
+                ...this.state.credentials,
                 password: e.target.value
               }
             })}
           />
           <br/>
           <button type="submit">Login</button>
+          <br/>
+          <button onClick={this.createAccount}>Create Account</button>
         </form>
         <p>{this.state.responseToPost}</p>
       </div>
