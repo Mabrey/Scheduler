@@ -26,11 +26,16 @@ let connectToDatabase = () => {
   return db;
  };
 
-let hash = (password) => {
+let hash = (username) => (password) => {
   bcrypt.genSalt(saltRounds, function(err, salt) {
     bcrypt.hash(password, salt, function(err, hash) {
       let db = connectToDatabase();
-      
+        db.run(`INSERT INTO user(userID, passHash, passSalt) VALUES (${username}, ${hash}, ${salt})`, function(err){
+          if (err){
+            return console.log(err.message);
+          }
+          console.log("A row has been inserted.")
+        });
         return hash;// Store hash in your password DB.
     });
 });
@@ -48,7 +53,7 @@ app.post('/api/world', (req, res) => {
 });
 
 app.post('/api/returnLogin', (req,res) =>{
-    let hashedPassword = hash(req.body.login.password);
+    let hashedPassword = hash(req.body.login.username)(req.body.login.password);
     console.log(hashedPassword);
     res.send(
         `Username: ${req.body.login.username} and Password: \"${hashedPassword}\"`
