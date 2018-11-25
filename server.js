@@ -9,6 +9,9 @@ const port = process.env.PORT || 5000;
 
 const sqlite3 = require('sqlite3').verbose();
 
+const cookieParser = require('cookieParser');
+const session = require('express-session');
+
 let userCount;
 let db; 
 //= connectToDatabase();
@@ -18,32 +21,74 @@ initialize();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
+app.use(cookieParser());
+app.use(session({secret: "shh"}));
 
-app.get('/api/hello', (req, res) => {
-  res.send({ express: 'Hello From Express' });
+
+app.get('/api/hello', (request, response) => {
+  response.send({ express: 'Hello From Express' });
 });
 
-app.post('/api/world', (req, res) => {
-  console.log(req.body);
-  res.send(
-    `I received your POST request. This is what you sent me: ${req.body.post}`,
+app.post('/api/world', (request, response) => {
+  response.send(
+    `I received your POST request. This is what you sent me: ${request.body.post}`,
   );
 });
 
-app.post('/api/returnLogin', (req,res) =>{
+app.post('/api/loginRequest', async (request,response) =>{
 
-    //let hashedPassword = hash(req.body.credentials.password);
-    console.log(req.body.credentials.password);
+    /**
+     *  @param request {username: , password: }
+     * 
+     * The username is verified to be valid and exists. 
+     * 
+     * The password is verified to be valid and correct.
+     * 
+     * ? What do I want to respond with?
+     * ? Something to verify they are still logged in?
+     * ? or just grant them a new api?
+     */
+    let username = request.body.credentials.username;
+    let password = request.body.credentials.password;
 
-    res.send(
-        `Username: ${req.body.credentials.username} and Password: \"${req.body.credentials.password}\"`
-    );
+    try {
+
+      let loginAttempt = async (username, password) => {
+        return new Promise(async (resolve, reject) => {
+          //private user hashPass 
+          //? Should I use closures like this, or should i make these private functions?
+          try{
+            let getUserHash = (username) => {
+              return new Promise((resolve, reject) => {
+                let sql = `SELECT user.passHash FROM user WHERE username = ?`;
+                hashQuery = db.get(sql, [username], (err, row) => {
+                  if (err){
+                    reject(err.message);
+                  }
+                  resolve(row.passHash);
+                });
+              });
+            };
+
+            let hash = await getUserHash(username);
+            let passwordMatch = await checkPassword(password, hash);
+            resolve(passwordMatch);
+          }
+          catch(error){reject(error)};
+        })
+      }
+      let loginStatus = await loginAttempt(username, password);
+      response.send(loginStatus);
+    }
+    catch(error){
+      response.send(error);
+    };
 });
 
-app.post('/api/createAccount', async (req, res) =>{
+app.post('/api/createAccount', async (request, response) =>{
   /** 
-   * @param req is a request with a potenial username and password combination
-   * @param res is a response that indicates the status of the attempted account creation. 
+   * @param request is a request with a potenial username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
    * 
    * The username is verified to be valid and available first.
    * The password is verified to be valid.
@@ -53,8 +98,8 @@ app.post('/api/createAccount', async (req, res) =>{
    * Initially, we only input the userID, username, hash, salt, and authType (default: "user").
    * The insert statement is then run with the user's parameters, and a status is returned and shown to the user.
   */
-  let username = req.body.credentials.username;
-  let password = req.body.credentials.password;
+  let username = request.body.credentials.username;
+  let password = request.body.credentials.password;
 
   
   try{
@@ -70,9 +115,9 @@ app.post('/api/createAccount', async (req, res) =>{
     
     let createStatus = await insertUserInDB(sql, insertParameters);
 
-    res.send(`${createStatus}`);
+    response.send(`${createStatus}`);
   } catch (error){
-    res.send(error);
+    response.send(error);
   }
 })
 
@@ -81,6 +126,7 @@ app.listen(port, () => console.log(`Listening on port ${port}`));
 async function initialize(){
   db = await connectToDatabase();
   userCount = await getUserCount();
+
 }
 
 function updateUserCount(){
@@ -143,14 +189,13 @@ function hash(password) {
 function checkPassword(password, hash){
   return new Promise((resolve, reject) => {
     bcrypt.compare(password, hash, function(err, res) {
-        if(err)
-          reject("Password No Match");
-        else resolve("You logged in successfully");
+        if(res){
+          resolve("Login Successful");
+        }
+        else reject("Login Failed");
       })
   })
 };
-
-
 
 async function isUsernameAvailable(username){
   return new Promise(async(resolve, reject) => {
@@ -159,13 +204,10 @@ async function isUsernameAvailable(username){
     
     let taken = await checkUsernameInDB(sql, username);
     
-    console.log(`Username: ${username}`);
-    console.log(`Taken: ${taken}`);
     if (!taken){
       resolve("hello");
     }
     else{
-      console.log("Username not Available");
       reject("Username Not Available");
     }
   });
@@ -173,12 +215,10 @@ async function isUsernameAvailable(username){
 
 async function checkUsernameInDB(sql, username){
   return new Promise((resolve, reject) => {
-    console.log("im trying");
     db.get(sql, [username], (err, row) => {
       if (err){
-        return console.error(err.message);
+        reject(err.message);
       }
-      console.log(`row: ${row.taken}`);
       resolve(row.taken);
     });
   });
@@ -186,7 +226,6 @@ async function checkUsernameInDB(sql, username){
 
 function insertUserInDB(sql, params){
   return new Promise((resolve, reject) => {
-    console.log("Inserting user: " + params[1]);
     db.run(sql, params, function(err){
       if (err){
         reject("Cannot insert user.");
@@ -205,8 +244,7 @@ function isUsernameValid(username){
     //or start/end with them. 
     let pattern = /^(?=.*[a-zA-Z].*[a-zA-Z].*)\w(?!.*[._]{2,}|.*[._]$)(\w|[._]){4,15}$/;
     if(username.match(pattern)){
-      console.log("valid username");
-       resolve();
+      resolve();
     }
     else reject("Username Has Invalid Format");
   });
@@ -216,11 +254,9 @@ function isPasswordValid(password){
   return new Promise((resolve, reject) => {
     let pattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
     if(password.match(pattern)){
-      console.log("password valid");
       resolve();
     }
     else {
-      console.log("Password Not Valid");
       reject("Password Not Valid");
     }
   });

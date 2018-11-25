@@ -43,9 +43,9 @@ class App extends Component {
     this.setState({responseToPost: body});
   };
 
-  LoginAttempt = async e => {
+  loginRequest = async e => {
     e.preventDefault();
-    const response = await fetch('/api/returnLogin', {
+    const response = await fetch('/api/loginRequest', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
@@ -81,7 +81,7 @@ class App extends Component {
         </header>
 
         
-        <form onSubmit={this.LoginAttempt}>
+        <form onSubmit={this.loginRequest}>
           <p>Username:</p>
           <input
             id = "username"
