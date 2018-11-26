@@ -9,7 +9,7 @@ const port = process.env.PORT || 5000;
 
 const sqlite3 = require('sqlite3').verbose();
 
-const cookieParser = require('cookieParser');
+const cookieParser = require('cookie-parser');
 const session = require('express-session');
 
 let userCount;
@@ -22,18 +22,11 @@ initialize();
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(cookieParser());
-app.use(session({secret: "shh"}));
-
-
-app.get('/api/hello', (request, response) => {
-  response.send({ express: 'Hello From Express' });
-});
-
-app.post('/api/world', (request, response) => {
-  response.send(
-    `I received your POST request. This is what you sent me: ${request.body.post}`,
-  );
-});
+app.use(session({
+  secret: "shh",
+  resave: true,
+  saveUninitialized: true
+}));
 
 app.post('/api/loginRequest', async (request,response) =>{
 
@@ -41,8 +34,8 @@ app.post('/api/loginRequest', async (request,response) =>{
      *  @param request {username: , password: }
      * 
      * The username is verified to be valid and exists. 
-     * 
      * The password is verified to be valid and correct.
+     * If the credentials are correct, then the user will be redirected to the next page.
      * 
      * ? What do I want to respond with?
      * ? Something to verify they are still logged in?
@@ -124,12 +117,18 @@ app.post('/api/createAccount', async (request, response) =>{
 app.listen(port, () => console.log(`Listening on port ${port}`));
 
 async function initialize(){
+  /**
+   * This function initializes the database connection and updates the user count.
+   */
   db = await connectToDatabase();
   userCount = await getUserCount();
 
 }
 
 function updateUserCount(){
+  /**
+   * returns a promise that gives the count of users in the database. 
+   */
   return new Promise(async (resolve, reject) =>{
     try{
       userCount = await getUserCount();
@@ -142,6 +141,10 @@ function updateUserCount(){
 };
 
 function connectToDatabase() {
+  /**
+   * Creates a database object that connects to the scheduler database.
+   * returns the database object to be used to complete queries.
+   */
   return new Promise((resolve, reject) => {
     let db = new sqlite3.Database('./db/scheduler.db', (err) => {
       if (err) {
@@ -157,12 +160,20 @@ function connectToDatabase() {
 };
 
 async function getUserCount() {
+  /**
+   * Creates a sql query and returns the user count as the max user ID.
+   */
   let sql = "SELECT MAX(userID) AS userCount FROM user";
   let userCount = await getMaxUserID(sql);
   return userCount;
 };
 
 function getMaxUserID(sql){
+  /**
+   * ! This statement could be generalized as just running sql statements.
+   * ? maybe just make a named instance of this function to make use clearer. 
+   * ? Ex: getMaxUserID = thisFunc(); getMaxUserID(sql);
+   */
   return new Promise((resolve, reject) => {
     db.get(sql, (err, row) => {
       if (err){
@@ -175,6 +186,11 @@ function getMaxUserID(sql){
 }
 
 function hash(password) {
+  /**
+   * Creates and returns a promise which generates a salt and hashes
+   * the supplied password using bcrypt. The hash and salt are
+   * returned in the resolve.
+   */
   return new Promise((resolve, reject) => {
     bcrypt.genSalt(saltRounds, function(err, salt) {
         bcrypt.hash(password, salt, function(err, hash) {
@@ -187,25 +203,34 @@ function hash(password) {
 };
 
 function checkPassword(password, hash){
+  /**
+   * !seems to always return true;
+   * compares the password givin to the hash of the password requested by the user. 
+   */
   return new Promise((resolve, reject) => {
     bcrypt.compare(password, hash, function(err, res) {
         if(res){
-          resolve("Login Successful");
+          //resolve("Login Successful");
+          resolve(true);
         }
-        else reject("Login Failed");
+        else reject(false);//reject("Login Failed");
       })
   })
 };
 
 async function isUsernameAvailable(username){
+  /**
+   * @param username takes a string as input for the prepared statement.
+   * Checks the database to see if the selected username is available during account creation
+   */
   return new Promise(async(resolve, reject) => {
-    //let db = connectToDatabase();
+    
     let sql = `SELECT EXISTS(SELECT username FROM user WHERE username = ?) AS taken`;
     
     let taken = await checkUsernameInDB(sql, username);
     
     if (!taken){
-      resolve("hello");
+      resolve();
     }
     else{
       reject("Username Not Available");
@@ -214,6 +239,12 @@ async function isUsernameAvailable(username){
 };
 
 async function checkUsernameInDB(sql, username){
+  /**
+   * @param sql a prepared statement for username existence check.
+   * @param username a string that the user supplies to be checked.
+   * 
+   * returns a promise that determines if the username exists.
+   */
   return new Promise((resolve, reject) => {
     db.get(sql, [username], (err, row) => {
       if (err){
@@ -222,9 +253,13 @@ async function checkUsernameInDB(sql, username){
       resolve(row.taken);
     });
   });
-}
+};
 
 function insertUserInDB(sql, params){
+  /**
+   * @param sql takes a prepared statement for inserting a user into the database.
+   * @param params [userID, username, firstName, lastName, passHash, passSalt, authType]
+   */
   return new Promise((resolve, reject) => {
     db.run(sql, params, function(err){
       if (err){
@@ -238,6 +273,11 @@ function insertUserInDB(sql, params){
 };
 
 function isUsernameValid(username){
+  /**
+   * @param username a string given by the user as a potential username.
+   * 
+   * returns a promise that detects if a username follows the required pattern.
+   */
   return new Promise((resolve, reject) => {
     //can have uppercase, lowercase, numbers, _, ., and \,
     // but not allow 2 punctuation marks to occur together
@@ -251,6 +291,11 @@ function isUsernameValid(username){
 };
 
 function isPasswordValid(password){
+  /**
+   * @param password takes a string provided from the user as a potential password.
+   * 
+   * returns a promise which validates or rejects if the password matches the correct pattern.
+   */
   return new Promise((resolve, reject) => {
     let pattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
     if(password.match(pattern)){

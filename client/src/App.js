@@ -11,7 +11,8 @@ class App extends Component {
     credentials: {
       username: '',
       password: ''
-    }
+    },
+    loggedIn: false,
   };
 
   componentDidMount() {
@@ -54,7 +55,7 @@ class App extends Component {
     });
     const body = await response.text();
     
-    this.setState({responseToPost: body});
+    this.setState({loggedIn: body});
   };
 
   createAccount = async e => {
@@ -72,48 +73,62 @@ class App extends Component {
   }
 
   render() {
-    return (
-      <div className="App">
-        <header className="App-header">
-          <p>
-            Thank you for using My App! 
-          </p>
-        </header>
+    if (!this.state.loggedIn || this.state.loggedIn === "false"){
+      return (
+        <div className="App">
+          <header className="App-header">
+            <p>
+              Thank you for using My App! 
+            </p>
+          </header>
 
-        
-        <form onSubmit={this.loginRequest}>
-          <p>Username:</p>
-          <input
-            id = "username"
-            type="text"
-            value={this.state.credentials.username}
-            onChange={e=>this.setState({
-              credentials:{
-                ...this.state.credentials,
-                username: e.target.value
-              }
-            })}
-          />
-          <p>Password:</p>
-          <input
-            id = "password"
-            type="password"
-            value={this.state.credentials.password}
-            onChange={e=>this.setState({
-              credentials:{
-                ...this.state.credentials,
-                password: e.target.value
-              }
-            })}
-          />
-          <br/>
-          <button type="submit">Login</button>
-          <br/>
-          <button onClick={this.createAccount}>Create Account</button>
-        </form>
-        <p>{this.state.responseToPost}</p>
-      </div>
-    );
+          
+          <form onSubmit={this.loginRequest}>
+            <p>Username:</p>
+            <input
+              id = "username"
+              type="text"
+              value={this.state.credentials.username}
+              onChange={e=>this.setState({
+                credentials:{
+                  ...this.state.credentials,
+                  username: e.target.value
+                }
+              })}
+            />
+            <p>Password:</p>
+            <input
+              id = "password"
+              type="password"
+              value={this.state.credentials.password}
+              onChange={e=>this.setState({
+                credentials:{
+                  ...this.state.credentials,
+                  password: e.target.value
+                }
+              })}
+            />
+            <br/>
+            <button type="submit">Login</button>
+            <br/>
+            <button onClick={this.createAccount}>Create Account</button>
+          </form>
+          <p>{this.state.responseToPost}</p>
+        </div>
+      );
+    }
+    if(this.state.loggedIn === "true"){
+      return (
+          <div className="App">
+          <header className="App-header">
+            <p>
+              Thank you for using My App! 
+            </p>
+            <p>You are now logged in</p>
+          </header>
+          </div>
+      );
+    }
   }
 }
 
