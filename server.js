@@ -106,13 +106,35 @@ app.post('/api/createAccount', async (request, response) =>{
               VALUES(?,?,?,?,?,?,?)`;
     let insertParameters = [userCount+1, username, "NULL", "NULL", hashResult.hash, hashResult.salt, "user"];
     
-    let createStatus = await insertUserInDB(sql, insertParameters);
+    let insertUserInDB = insertInDB(sql, insertParameters);
+    let createStatus = await insertUserInDB("User Successfully Added", "User Could Not be Added");
 
     response.send(`${createStatus}`);
   } catch (error){
     response.send(error);
   }
-})
+});
+
+app.post('/api/getUserEvents', async (request, response) => {
+
+});
+
+app.post('/api/inputStaticEvent', async (request, response) =>{
+
+});
+
+app.post('/api/inputFlexEvent', async (request, response) =>{
+
+});
+
+app.post('/api/modifyEvent', async (request, response) =>{
+
+});
+
+app.post('/api/generateSchedule', async (request, response) =>{
+
+});
+
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
 
@@ -272,6 +294,30 @@ function insertUserInDB(sql, params){
   })
 };
 
+function insertInDB(sql, params){
+  
+  // *@param sql takes a prepared statement for inserting a user into the database.
+  // *@param params [userID, username, firstName, lastName, passHash, passSalt, authType]
+   
+  return(resMessage, rejMessage) =>{
+
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function(err){
+        if (err){
+          reject(`${rejMessage}`);
+        }
+        else{
+          resolve(`${resMessage}`)
+        }
+      });
+    })
+  }
+  
+};
+
+
+
+
 function isUsernameValid(username){
   /**
    * @param username a string given by the user as a potential username.
@@ -305,4 +351,8 @@ function isPasswordValid(password){
       reject("Password Not Valid");
     }
   });
-}
+};
+
+
+
+//let insertUserIntoDB = insertInDB(sql,params)(resMessage, rejMessage);
