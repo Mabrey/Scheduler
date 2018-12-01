@@ -80,7 +80,7 @@ app.post('/api/loginRequest', async (request,response) =>{
 
 app.post('/api/createAccount', async (request, response) =>{
   /** 
-   * @param request is a request with a potenial username and password combination
+   * @param request is a request with a potential username and password combination
    * @param response is a response that indicates the status of the attempted account creation. 
    * 
    * The username is verified to be valid and available first.
