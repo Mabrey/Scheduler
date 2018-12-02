@@ -48,7 +48,7 @@ app.post('/api/loginRequest', async (request,response) =>{
       await isUsernameValid(username);
       let available = await isUsernameAvailable(username);
       if (available){
-        response.send("Username Does Not Exist");
+        return response.send("false");
       }
       await isPasswordValid(password);
 
@@ -80,7 +80,7 @@ app.post('/api/loginRequest', async (request,response) =>{
       response.send(loginStatus);
     }
     catch(error){
-      response.reject(error);
+      response.send("false");
     };
 });
 

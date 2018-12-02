@@ -2,6 +2,8 @@ import React, { Component } from 'react';
 //import logo from './logo.svg';
 import './App.css';
 
+import Login from './Login';
+
 class App extends Component {
 
   state = {
@@ -15,20 +17,13 @@ class App extends Component {
     loggedIn: false,
   };
 
+  /*
   componentDidMount() {
     this.callApi()
       .then(res => this.setState({response: res.express}))
       .catch(err => console.log(err));
   };
-
-  callApi = async () => {
-    const response = await fetch('/api/hello');
-    const body = await response.json();
-
-    if (response.status !== 200) throw Error(body.message);
-
-    return body;
-  };
+  
 
   loginRequest = async e => {
     e.preventDefault();
@@ -66,52 +61,19 @@ class App extends Component {
 
     this.setState({responseToPost: body});
   }
+*/
+
+  logInUpdate = (logInStatus) =>{
+    this.setState({loggedIn: logInStatus})
+  }
 
   render() {
     if (!this.state.loggedIn || this.state.loggedIn === "false"){
       return (
-        <div className="App">
-          <header className="App-header">
-            <p>
-              Thank you for using My App! 
-            </p>
-          </header>
-
-          <form onSubmit={this.loginRequest}>
-            <p>Username:</p>
-            <input
-              id = "username"
-              type="text"
-              value={this.state.credentials.username}
-              onChange={e=>this.setState({
-                credentials:{
-                  ...this.state.credentials,
-                  username: e.target.value
-                }
-              })}
-            />
-            <p>Password:</p>
-            <input
-              id = "password"
-              type="password"
-              value={this.state.credentials.password}
-              onChange={e=>this.setState({
-                credentials:{
-                  ...this.state.credentials,
-                  password: e.target.value
-                }
-              })}
-            />
-            <br/>
-            <button type="submit">Login</button>
-            <br/>
-            <button onClick={this.createAccount}>Create Account</button>
-          </form>
-          <p>{this.state.responseToPost}</p>
-        </div>
+        <Login logInUpdate= {this.logInUpdate}/>
       );
     }
-    if(this.state.loggedIn === "true"){
+    if(this.state.loggedIn ||this.state.loggedIn === "true"){
       return (
           <div className="App">
           <header className="App-header">
