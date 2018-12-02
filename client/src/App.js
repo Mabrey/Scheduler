@@ -39,10 +39,19 @@ class App extends Component {
       },
       body: JSON.stringify({credentials:this.state.credentials}),
     });
-    const body = await response.text();
+
+   
+    try{
+      const body = await response.text();
+      console.log(body);
+      this.setState({loggedIn: body});
+
+      }catch(error){
+        this.setState({loggedIn: false});   
+      };
     
-    this.setState({loggedIn: body});
-  };
+    
+  }
 
   createAccount = async e => {
     e.preventDefault();
@@ -68,7 +77,6 @@ class App extends Component {
             </p>
           </header>
 
-          
           <form onSubmit={this.loginRequest}>
             <p>Username:</p>
             <input

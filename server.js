@@ -45,6 +45,12 @@ app.post('/api/loginRequest', async (request,response) =>{
     let password = request.body.credentials.password;
 
     try {
+      await isUsernameValid(username);
+      let available = await isUsernameAvailable(username);
+      if (available){
+        response.send("Username Does Not Exist");
+      }
+      await isPasswordValid(password);
 
       let loginAttempt = async (username, password) => {
         return new Promise(async (resolve, reject) => {
@@ -74,7 +80,7 @@ app.post('/api/loginRequest', async (request,response) =>{
       response.send(loginStatus);
     }
     catch(error){
-      response.send(error);
+      response.reject(error);
     };
 });
 
@@ -97,7 +103,12 @@ app.post('/api/createAccount', async (request, response) =>{
   
   try{
     await isUsernameValid(username);
-    await isUsernameAvailable(username);
+    let available = await isUsernameAvailable(username);
+    if(!available){
+      response.send("Username Already Exists")
+    };
+
+
     await isPasswordValid(password);
     let hashResult = await hash(password);
     await updateUserCount();
@@ -251,12 +262,7 @@ async function isUsernameAvailable(username){
     
     let taken = await checkUsernameInDB(sql, username);
     
-    if (!taken){
-      resolve();
-    }
-    else{
-      reject("Username Not Available");
-    }
+    resolve(!taken);
   });
 };
 
@@ -277,30 +283,24 @@ async function checkUsernameInDB(sql, username){
   });
 };
 
-function insertUserInDB(sql, params){
-  /**
-   * @param sql takes a prepared statement for inserting a user into the database.
-   * @param params [userID, username, firstName, lastName, passHash, passSalt, authType]
-   */
-  return new Promise((resolve, reject) => {
-    db.run(sql, params, function(err){
-      if (err){
-        reject("Cannot insert user.");
-      }
-      else{
-        resolve("User account created.")
-      }
-    });
-  })
-};
-
 function insertInDB(sql, params){
   
-  // *@param sql takes a prepared statement for inserting a user into the database.
-  // *@param params [userID, username, firstName, lastName, passHash, passSalt, authType]
+  /**
+   * This function is used as a partial function to let new functions
+   * use this insert behavior. 
+   * 
+   * @param sql takes a prepared statement.
+   * @param params supplies parameters for prepared statement
+   * 
+   * * EX: let newInsertFunction = insertInDB(sql,params);
+   * *     let message = await newInsertFunction(resMessage, rejMessage);
+   */
    
   return(resMessage, rejMessage) =>{
-
+    /**
+     * @param resMessage supplies the message to return when resolved
+     * @param rejMessage supplies the message to return when rejected
+     */
     return new Promise((resolve, reject) => {
       db.run(sql, params, function(err){
         if (err){
@@ -312,11 +312,7 @@ function insertInDB(sql, params){
       });
     })
   }
-  
 };
-
-
-
 
 function isUsernameValid(username){
   /**
