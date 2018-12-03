@@ -9,9 +9,6 @@ const port = process.env.PORT || 5000;
 
 const sqlite3 = require('sqlite3').verbose();
 
-const cookieParser = require('cookie-parser');
-const session = require('express-session');
-
 let userCount;
 let db; 
 //= connectToDatabase();
@@ -21,12 +18,7 @@ initialize();
 
 app.use(bodyParser.json());
 app.use(bodyParser.urlencoded({ extended: true }));
-app.use(cookieParser());
-app.use(session({
-  secret: "shh",
-  resave: true,
-  saveUninitialized: true
-}));
+
 
 app.post('/api/loginRequest', async (request,response) =>{
 
@@ -48,7 +40,11 @@ app.post('/api/loginRequest', async (request,response) =>{
       await isUsernameValid(username);
       let available = await isUsernameAvailable(username);
       if (available){
-        return response.send("false");
+        let result = {
+          loginStatus: false,
+          token: null
+        };
+        return response.send(result);
       }
       await isPasswordValid(password);
 
@@ -75,12 +71,30 @@ app.post('/api/loginRequest', async (request,response) =>{
           }
           catch(error){reject(error)};
         })
-      }
+      };
+
       let loginStatus = await loginAttempt(username, password);
-      response.send(loginStatus);
+      let token = buildUserToken(username);
+
+      let result = {
+        loginStatus: loginStatus,
+        token: token,
+      };
+
+      //
+
+      //result = JSON.stringify(result);
+      
+      response.send(result);
     }
     catch(error){
-      response.send("false");
+      let result = {
+        loginStatus: false,
+        token: null
+      };
+    
+      console.log(result);
+      response.send(result);
     };
 });
 
@@ -349,6 +363,33 @@ function isPasswordValid(password){
   });
 };
 
+function buildUserToken(username){
+  /**
+   * @param username supplies a username to build a token after authentication.
+   * ? what should the token be comprised of?
+   * 
+   */
 
+  let token = {
+    username: username
+  };
 
-//let insertUserIntoDB = insertInDB(sql,params)(resMessage, rejMessage);
+  token = JSON.stringify({token});
+  return encodeURI(token);
+
+};
+
+function authenticateToken(username, token){
+  /**
+   * @param token supplies a token from the user when making a request.
+   * Decrypts the token to verify the user making the request. 
+   */
+
+  let decryptToken = decodeURI(token);
+  let tokenUsername = decryptToken.username;
+
+  if (username === tokenUsername)
+    return true;
+    
+  else return false;
+}

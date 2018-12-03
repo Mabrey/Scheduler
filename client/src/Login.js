@@ -13,6 +13,7 @@ class Login extends Component {
       password: ''
     },
     loggedIn: false,
+    token: null,
   };
 
   
@@ -37,10 +38,16 @@ class Login extends Component {
    
     try{
       const body = await response.text();
+      console.log("hello");
+      let result = JSON.parse(body);
+      console.log(result.loginStatus);
 
       let logInUpdate = this.props.logInUpdate;
-      logInUpdate(body);
-
+      let updateToken = this.props.updateToken;
+      this.setState({responseToPost: result.loginStatus});
+      
+      logInUpdate(result.loginStatus);
+      updateToken(result.token);
       //this.setState({loggedIn: body});
 
       }catch(error){
@@ -48,7 +55,7 @@ class Login extends Component {
       };
     
     
-  }
+  };
 
   createAccount = async e => {
     e.preventDefault();

@@ -15,6 +15,7 @@ class App extends Component {
       password: ''
     },
     loggedIn: false,
+    token: null,
   };
 
   /*
@@ -65,12 +66,16 @@ class App extends Component {
 
   logInUpdate = (logInStatus) =>{
     this.setState({loggedIn: logInStatus})
-  }
+  };
+
+  updateToken = (token) => {
+    this.setState({token: token})
+  };
 
   render() {
     if (!this.state.loggedIn || this.state.loggedIn === "false"){
       return (
-        <Login logInUpdate= {this.logInUpdate}/>
+        <Login logInUpdate={this.logInUpdate} updateToken={this.updateToken}/>
       );
     }
     if(this.state.loggedIn ||this.state.loggedIn === "true"){
