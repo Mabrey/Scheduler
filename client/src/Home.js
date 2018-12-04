@@ -3,6 +3,7 @@ import React, { Component } from 'react';
 //import MenuPopup from "reactjs-popup";
 //import logo from './logo.svg';
 import './Home.css';
+import { stat } from 'fs';
 
 function Event(props){
   return(
@@ -67,52 +68,94 @@ function StaticEventForm(props){
       eventID: null,
       eventName: null,
       eventDesc: null, 
-      startDate: null,
-      endDate: null,
+      startDate: {
+        month: null,
+        day: null,
+        year:null,
+      },
+      endDate:{
+        month: null,
+        day: null,
+        year:null,
+      },
       startTime: null,
       endTime: null,
     }
   };
 
-  function setStartDate(date){
-    this.setState({staticEvent:{
-      ...this.state.staticEvent,
-      startDate: date,
-    }})
+  function setStartMonth(event){
+    state = {staticEvent:{
+      ...state.staticEvent,
+      startDate:{
+        ...state.staticEvent.startDate,
+        month: event.target.value,
+      },
+    }}
+  }
+  function setStartDay(event){
+    state = {staticEvent:{
+      ...state.staticEvent,
+      startDate:{
+        ...state.staticEvent.startDate,
+        day: event.target.value,
+      },
+    }}
+  }
+  function setStartYear(event){
+    state={staticEvent:{
+      ...state.staticEvent,
+      startDate:{
+        ...state.staticEvent.startDate,
+        year: event.target.value,
+      },
+    }}
+  }
+  function setStartTime(event){
+    state = {staticEvent:{
+      ...state.staticEvent,
+      startTime: event.target.value,
+    }}
+  }
+  function setEndTime(event){
+    state = {staticEvent:{
+      ...state.staticEvent,
+      endTime: event.target.value,
+    }}
   }
 
-  return(
+  if (props.active)
+    return(
     <div>
       <form>
         <p>Event Name:</p>
         <input
           type='text'
-          value={this.eventName}
-          onChange={e=>this.setState({
+          value={state.staticEvent.eventName}
+          onChange={e=>state.staticEvent={
             staticEvent:{
-              ...this.state.staticEvent,
+              ...state.staticEvent,
               eventName: e.target.value
             }
-          })}
+          }}
         />
         <p>Description:</p>
         <input
           type='text'
-          value={this.eventName}
-          onChange={e=>this.setState({
+          value={state.staticEvent.eventDesc}
+          onChange={e=>state.staticEvent={
             staticEvent:{
-              ...this.state.staticEvent,
+              ...state.staticEvent,
               eventName: e.target.value
             }
-          })}
+          }}
         />
         <p>Date:</p>
-        <select id = 'dateMonth'>
+        <select id = 'dateMonth' onChange={setStartMonth}>
           <option value='10'>10</option>
           <option value='11'>11</option>
           <option value='12'>12</option>
         </select>
-        <select id = 'dateDay'>
+        <select id = 'dateDay' onChange={setStartDay}>
           <option value='00'>00</option>
           <option value='01'>01</option>
           <option value='02'>02</option>
@@ -146,8 +189,11 @@ function StaticEventForm(props){
           <option value='30'>30</option>
           <option value='31'>31</option>
         </select>
+        <select id = 'dateYear' onChange={setStartYear}>
+          <option value='2018'>2018</option>
+        </select>
         <p>Start Time:</p>
-        <select id = 'startTime'>
+        <select id = 'startTime' onChange={setStartTime}>
           <option value = '00:00'>12 AM</option>
           <option value = '01:00'>1 AM</option>
           <option value = '02:00'>2 AM</option>
@@ -174,7 +220,7 @@ function StaticEventForm(props){
           <option value = '23:00'>11 PM</option>
         </select>
         <p>End Time:</p>
-        <select id = 'endTime'>
+        <select id = 'endTime' onChange={setEndTime}>
           <option value = '00:00'>12 AM</option>
           <option value = '01:00'>1 AM</option>
           <option value = '02:00'>2 AM</option>
@@ -203,30 +249,63 @@ function StaticEventForm(props){
       </form>
     </div>
   );
+  else return (null);
 }
 
 function Popup(props){ 
 
   let state = {
+    staticEventFormActive: false,
+    flexEventFormActive:false,
     staticEvent:{
       username: props.username,
       eventID: null,
       eventName: null,
       eventDesc: null, 
-      startDate: null,
-      endDate: null,
+      startDate: {
+        month: null,
+        day: null,
+        year:null,
+      },
+      endDate:{
+        month: null,
+        day: null,
+        year:null,
+      },
       startTime: null,
       endTime: null,
     }
+  }
+
+  let createStaticEvent = props.createStaticEvent;
+
+  function getStaticEvent(staticEvent){
+    state.staticEvent= staticEvent;
+  }
+
+  function toggleStaticForm(){
+    //if(state.flexEventFormActive)
+    state.flexEventFormActive=false;
+    state.staticEventFormActive=!state.staticEventFormActive;
+  }
+  function toggleFlexForm(){
+    if(state.staticEventFormActive)
+      state.staticEventFormActive=false;
+    state.flexEventFormActive=!state.flexEventFormActive;
   }
 
   if(!props.active){
     return(null);
   }else return(
     <div id = 'createEventTypeWindow'>
-      <button id = 'createStaticEvent'>Create Static Event</button>
+      <button id = 'createStaticEvent' onClick={()=>state.staticEventFormActive=!state.staticEventFormActive}>Create Static Event</button>
       <br/>
-      <button id = 'createFlexEvent'>Create Flex Event</button>
+      <button id = 'createFlexEvent' onClick={toggleFlexForm}>Create Flex Event</button>
+      <StaticEventForm
+        createStaticEvent = {createStaticEvent}
+        getStaticEvent = {getStaticEvent}
+        active = {state.staticEventFormActive}
+      />
     </div>
   );
   
@@ -234,8 +313,8 @@ function Popup(props){
 
 class Home extends Component {
 
-  constructor(){
-    super();
+  constructor(props){
+    super(props);
     this.state = {
       popupActive : false,
       username: this.props.username,
@@ -270,7 +349,8 @@ class Home extends Component {
           <EventList/>
           <Popup
             active = {this.state.popupActive}
-            username={this.state.username}/>
+            username={this.state.username}
+            createStaticEvent={this.createStaticEvent}/>
           <button id='createEvent' onClick={this.toggleCreateEvent}>Create Event</button>
         </div>
     );
