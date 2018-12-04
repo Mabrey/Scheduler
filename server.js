@@ -144,8 +144,89 @@ app.post('/api/getUserEvents', async (request, response) => {
 
 });
 
-app.post('/api/inputStaticEvent', async (request, response) =>{
+app.post('/api/generateSchedule', async (request, response) =>{
 
+});
+
+app.post('/api/enrollInClass', async (request, response) => {
+  /** 
+   * @param request is a request with a potential username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
+   * 
+  */
+
+  // Get variables for 'enroll'
+  let classID = 'NULL';
+  let userID = 'NULL';
+  let enrolledDate = 'NULL';
+
+  try {
+    let sql = `INSERT INTO studentEnrollment(classID, userID, enrolledDate) 
+              VALUES(?,?,?)`;
+    let insertParameters = [eventID, classID];
+    let insert = insertInDB(sql, insertParameters);
+    let createStatus = await insert("Successfully Enrolled", "Not Successfully Enrolled");
+
+    response.send(`${createStatus}`);
+  } catch (error) {
+    response.send(error);
+  }
+});
+
+app.post('/api/addClass', async (request, response) => {
+  /** 
+   * @param request is a request with a potential username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
+   * 
+  */
+
+  // Get variables for 'addClass'
+  let classID = 'NULL';
+  let name = 'NULL';
+  let professorID = 'NULL';
+  let rotation = 'NULL';
+  let startTime = 'NULL';
+  let endTime = 'NULL';
+  let startDate = 'NULL';
+  let endDate = 'NULL';
+
+  try {
+    let sql = `INSERT INTO class(classID, name, professorID, rotation, startTime, endTime, startDate, endDate) 
+              VALUES(?,?,?,?,?,?,?,?)`;
+    let insertParameters = [classID, name, professorID, rotation, startTime, endTime, startDate, endDate];
+    let insert = insertInDB(sql, insertParameters);
+    let createStatus = await insert("Class Successfully Added", "Class Could Not be Added");
+
+    response.send(`${createStatus}`);
+  } catch (error) {
+    response.send(error);
+  }
+});
+
+app.post('/api/addEvent', async (request, response) => {
+  /** 
+   * @param request is a request with a potential username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
+   * 
+  */
+
+  // Get variables for 'addEvent'
+  let eventID = 'NULL';
+  let userID = this.request.body.userID;
+  let name = this.request.body.name;
+  let description = this.request.body.description;
+
+  try {
+    let sql = `INSERT INTO event(eventID, userID, name, description) 
+              VALUES(?,?,?,?)`;
+    let insertParameters = [eventID, userID, name, description];
+    let insert = insertInDB(sql, insertParameters);
+    let createStatus = await insert("Event Successfully Added", "Event Could Not be Added");
+
+    response.send(`${createStatus}`);
+  } catch (error) {
+    response.send(error);
+  }
 });
 
 app.post('/api/inputFlexEvent', async (request, response) =>{
@@ -156,10 +237,56 @@ app.post('/api/modifyEvent', async (request, response) =>{
 
 });
 
-app.post('/api/generateSchedule', async (request, response) =>{
+app.post('/api/addClasswork', async (request, response) => {
+  /** 
+   * @param request is a request with a potential username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
+   * 
+  */
 
+  // Get variables for 'addClasswork'
+  let eventID = 'NULL';
+  let classID = 'NULL';
+
+  try {
+    let sql = `INSERT INTO classwork(eventID, classID) 
+              VALUES(?,?)`;
+    let insertParameters = [eventID, classID];
+    let insert = insertInDB(sql, insertParameters);
+    let createStatus = await insert("Classwork Successfully Added", "Classwork Could Not be Added");
+
+    response.send(`${createStatus}`);
+  } catch (error) {
+    response.send(error);
+  }
 });
 
+app.post('/api/addClassEvent', async (request, response) => {
+  /** 
+   * @param request is a request with a potential username and password combination
+   * @param response is a response that indicates the status of the attempted account creation. 
+   * 
+  */
+
+  // Get variables for 'addClassEvent'
+  let eventID = 'NULL';
+  let classID = 'NULL';
+  let userID = 'NULL';
+  let name = 'NULL';
+  let description = 'NULL';
+
+  try {
+    let sql = `INSERT INTO classwork(eventID, classID) 
+              VALUES(?,?)`;
+    let insertParameters = [eventID, classID];
+    let insert = insertInDB(sql, insertParameters);
+    let createStatus = await insert("Classwork Successfully Added", "Classwork Could Not be Added");
+
+    response.send(`${createStatus}`);
+  } catch (error) {
+    response.send(error);
+  }
+});
 
 app.listen(port, () => console.log(`Listening on port ${port}`));
 

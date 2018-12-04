@@ -38,16 +38,17 @@ class Login extends Component {
    
     try{
       const body = await response.text();
-      console.log("hello");
       let result = JSON.parse(body);
-      console.log(result.loginStatus);
 
       let logInUpdate = this.props.logInUpdate;
-      let updateToken = this.props.updateToken;
+      let updateState = this.props.updateState;
       this.setState({responseToPost: result.loginStatus});
       
+      updateState({username: this.state.credentials.username,
+                   token: result.token});
       logInUpdate(result.loginStatus);
-      updateToken(result.token);
+     
+      console.log(result.token);
       //this.setState({loggedIn: body});
 
       }catch(error){
