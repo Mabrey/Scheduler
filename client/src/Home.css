@@ -98,3 +98,9 @@
 #createStaticEvent, #createFlexEvent{
     width: 100%;
 }
+
+#staticEventForm, #flexEventForm{
+    grid-column: 4;
+    grid-row: 2/4;
+    justify-self: center;
+}

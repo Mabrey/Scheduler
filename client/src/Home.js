@@ -125,8 +125,8 @@ function StaticEventForm(props){
 
   if (props.active)
     return(
-    <div>
-      <form>
+    <div id = 'staticEventForm'>
+      <form onSubmit={}>
         <p>Event Name:</p>
         <input
           type='text'
@@ -246,6 +246,7 @@ function StaticEventForm(props){
           <option value = '22:00'>10 PM</option>
           <option value = '23:00'>11 PM</option>
         </select>
+        <button type='submit'>Submit</button>
       </form>
     </div>
   );
@@ -255,8 +256,6 @@ function StaticEventForm(props){
 function Popup(props){ 
 
   let state = {
-    staticEventFormActive: false,
-    flexEventFormActive:false,
     staticEvent:{
       username: props.username,
       eventID: null,
@@ -278,16 +277,14 @@ function Popup(props){
   }
 
   let createStaticEvent = props.createStaticEvent;
+  let toggleStaticForm = props.toggleStaticForm;
 
   function getStaticEvent(staticEvent){
     state.staticEvent= staticEvent;
   }
 
-  function toggleStaticForm(){
-    //if(state.flexEventFormActive)
-    state.flexEventFormActive=false;
-    state.staticEventFormActive=!state.staticEventFormActive;
-  }
+  
+
   function toggleFlexForm(){
     if(state.staticEventFormActive)
       state.staticEventFormActive=false;
@@ -298,14 +295,9 @@ function Popup(props){
     return(null);
   }else return(
     <div id = 'createEventTypeWindow'>
-      <button id = 'createStaticEvent' onClick={()=>state.staticEventFormActive=!state.staticEventFormActive}>Create Static Event</button>
+      <button id = 'createStaticEvent' onClick={toggleStaticForm}>Create Static Event</button>
       <br/>
       <button id = 'createFlexEvent' onClick={toggleFlexForm}>Create Flex Event</button>
-      <StaticEventForm
-        createStaticEvent = {createStaticEvent}
-        getStaticEvent = {getStaticEvent}
-        active = {state.staticEventFormActive}
-      />
     </div>
   );
   
@@ -316,6 +308,8 @@ class Home extends Component {
   constructor(props){
     super(props);
     this.state = {
+      staticEventFormActive: false,
+      flexEventFormActive:false,
       popupActive : false,
       username: this.props.username,
       token: this.props.token,
@@ -325,8 +319,20 @@ class Home extends Component {
   toggleCreateEvent = () => {
       this.setState({popupActive: !this.state.popupActive});
   }
- 
-  createStaticEvent = async e =>{
+
+  toggleStaticForm = () => {
+    //if(state.flexEventFormActive)
+    this.setState({flexEventFormActive:false});
+    this.setState({staticEventFormActive:!this.state.staticEventFormActive});
+  }
+
+  toggleFlexForm = () => {
+    //if(state.flexEventFormActive)
+    this.setState({staticEventFormActive:false});
+    this.setState({flexEventFormActive:!this.state.flexEventFormActive});
+  }
+
+  createStaticEvent = async (e, event) =>{
     e.preventDefault();
     const response = await fetch('/api/addEvent', {
       method: 'POST',
@@ -350,8 +356,12 @@ class Home extends Component {
           <Popup
             active = {this.state.popupActive}
             username={this.state.username}
-            createStaticEvent={this.createStaticEvent}/>
+            toggleStaticForm={this.toggleStaticForm}/>
           <button id='createEvent' onClick={this.toggleCreateEvent}>Create Event</button>
+          <StaticEventForm
+            active = {this.state.staticEventFormActive} 
+            createStaticEvent={this.createStaticEvent}
+          /> 
         </div>
     );
   }
