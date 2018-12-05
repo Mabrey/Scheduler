@@ -141,6 +141,14 @@ app.post('/api/createAccount', async (request, response) =>{
 });
 
 app.post('/api/getUserEvents', async (request, response) => {
+  let username = request.body.username;
+  try{
+    let events = await getUserEvents(username);
+    console.log(events);
+    response.send(events);
+  }catch(error){
+    response.send(error);
+  }
 
 });
 
@@ -211,22 +219,79 @@ app.post('/api/addEvent', async (request, response) => {
   */
 
   // Get variables for 'addEvent'
-  let eventID = 'NULL';
-  let userID = this.request.body.userID;
-  let name = this.request.body.name;
-  let description = this.request.body.description;
+  let eventID = '';
+  let username = request.body.staticEvent.username;
+  let userID;
+  let name = request.body.staticEvent.eventName;
+  let description = request.body.staticEvent.eventDesc;
+  let startDate =
+   `${request.body.staticEvent.startMonth}/${request.body.staticEvent.startDay}/${request.body.staticEvent.startYear}`;
 
-  try {
+  let endDate = startDate;
+  let startTime = request.body.staticEvent.startTime;
+  let endTime = request.body.staticEvent.endTime;
+  let createStatus;
+
+  try{
+    userID = await getUserID(username);
+    eventID = await getNextEventID();
+    console.log(eventID);
+    if(isNaN(eventID))
+      eventID = 1;
     let sql = `INSERT INTO event(eventID, userID, name, description) 
-              VALUES(?,?,?,?)`;
+                VALUES(?,?,?,?)`;
     let insertParameters = [eventID, userID, name, description];
     let insert = insertInDB(sql, insertParameters);
-    let createStatus = await insert("Event Successfully Added", "Event Could Not be Added");
-
-    response.send(`${createStatus}`);
-  } catch (error) {
-    response.send(error);
+    await insert("Event Successfully Added To Event", "Event Could Not be Added To Event");
+    
+    sql = `INSERT INTO eventTimes(eventID, startDate, endDate, startTime, endTime)
+          VALUES(?,?,?,?,?)`;
+    insertParameters = [eventID, startDate, endDate, startTime, endTime];
+    insert = insertInDB(sql, insertParameters);
+    createStatus = await insert("Event Successfully Added To Event Time", "Event Could Not be Added To Event Time");
+    console.log(createStatus);
+    response.send(createStatus);
+  } catch(error){
+    console.log(error)
+    response.send("Unable To Complete Insertion");
   }
+
+
+  // try{
+  //   let transactionDB = await connectToDatabase();
+
+  //   try {
+  //     userID = await getUserID(username);
+  //     eventID = await getNextEventID();
+  //     transactionDB.serialize(async function() {
+  //       try{
+  //       transactionDB.run("BEGIN;");
+  //       let sql = `INSERT INTO event(eventID, userID, name, description) 
+  //               VALUES(?,?,?,?)`;
+  //       let insertParameters = [eventID, userID, name, description];
+  //       let insert = insertTransaction(transactionDB, sql, insertParameters);
+  //       await insert("Event Successfully Added To Event", "Event Could Not be Added To Event");
+        
+  //       sql = `INSERT INTO eventTimes(eventID, startDate, endDate, startTime, endTime)
+  //             VALUES(?,?,?,?)`;
+  //       insertParameters = [eventID, startDate, endDate, startTime, endTime];
+  //       insert = insertTransaction(transactionDB, sql, insertParameters);
+  //       createStatus = await insert("Event Successfully Added To Event Time", "Event Could Not be Added To Event Time");
+  //       transactionDB.run('COMMIT');
+  //       } catch(error){
+  //         response.send(error);
+  //       }
+  //     })
+      
+  //     response.send(`${createStatus}`);
+  //   } catch (error) {
+  //     transactionDB.run('ROLLBACK')
+  //     response.send(error);
+  //   }
+  // }
+  // catch(error){
+  //   response.send(error);
+  // }
 });
 
 app.post('/api/inputFlexEvent', async (request, response) =>{
@@ -299,39 +364,40 @@ async function initialize(){
 
 }
 
-function updateUserCount(){
-  /**
-   * returns a promise that gives the count of users in the database. 
-   */
-  return new Promise(async (resolve, reject) =>{
+function getUserEvents(username){
+  return new Promise(async (resolve, reject) => {
     try{
-      userCount = await getUserCount();
-      resolve("Success");
-    }
-    catch(error){
-      reject("Failed");
-    }
-  });
-};
-
-function connectToDatabase() {
-  /**
-   * Creates a database object that connects to the scheduler database.
-   * returns the database object to be used to complete queries.
-   */
-  return new Promise((resolve, reject) => {
-    let db = new sqlite3.Database('./db/scheduler.db', (err) => {
-      if (err) {
-        console.error(err.message);
+    let userID = await getUserID(username);
+    let sql =
+     `CREATE VIEW events
+      AS SELECT event.eventID as id, name, description, startDate, endDate, startTime, endTime
+      FROM event, eventTimes
+      WHERE userID = ? AND event.eventID = eventTimes.eventID;`;
+    let events = [];
+    let params = [userID];
+    db.all(sql, params, (err, rows) => {
+      if(err){
         reject(err);
       }
-      else {
-        console.log('Connected to DB');
-        resolve(db);
-      } 
-    })
+      rows.forEach((row) => {
+        let event ={
+          eventID: row.id,
+          name: row.name,
+          description: row.description,
+          startDate: row.startDate,
+          endDate: row.endDate,
+          startTime: row.startTime,
+          endTime: row.endTime,
+        };
+        events.push(event);
+      });
+    });
+    resolve(events);
+  }catch(err){
+    reject(err);
+  }
   })
-};
+}
 
 async function getUserCount() {
   /**
@@ -359,6 +425,73 @@ function getMaxUserID(sql){
   })
 }
 
+function updateUserCount(){
+  /**
+   * returns a promise that gives the count of users in the database. 
+   */
+  return new Promise(async (resolve, reject) =>{
+    try{
+      userCount = await getUserCount();
+      resolve("Success");
+    }
+    catch(error){
+      reject("Failed");
+    }
+  });
+};
+
+function getUserID(username){
+  /**
+   * @param sql a prepared statement for username existence check.
+   * @param username a string that the user supplies to be checked.
+   * 
+   * returns a promise that gives userID.
+   */
+  return new Promise((resolve, reject) => {
+    let sql = `SELECT userID FROM user WHERE username = ?`;
+    db.get(sql, [username], (err, row) => {
+      if (err){
+        reject(err.message);
+      }
+      resolve(row.userID);
+    });
+  });
+};
+
+function getNextEventID(){
+  /**
+   * returns a promise that gives next event id.
+   */
+  return new Promise((resolve, reject) => {
+    let sql = `SELECT MAX(eventID) as maxEventID FROM event`;
+    db.get(sql, (err, row) => {
+      if (err){
+        reject(err.message);
+      }
+      resolve(parseInt(row.maxEventID) + 1);
+    });
+  });
+};
+
+function connectToDatabase() {
+  /**
+   * Creates a database object that connects to the scheduler database.
+   * returns the database object to be used to complete queries.
+   */
+  return new Promise((resolve, reject) => {
+    let db = new sqlite3.Database('./db/scheduler.db', (err) => {
+      if (err) {
+        console.error(err.message);
+        reject(err);
+      }
+      else {
+        console.log('Connected to DB');
+        resolve(db);
+      } 
+    })
+  })
+};
+
 function hash(password) {
   /**
    * Creates and returns a promise which generates a salt and hashes
@@ -376,6 +509,23 @@ function hash(password) {
   })
 };
 
+function isPasswordValid(password){
+  /**
+   * @param password takes a string provided from the user as a potential password.
+   * 
+   * returns a promise which validates or rejects if the password matches the correct pattern.
+   */
+  return new Promise((resolve, reject) => {
+    let pattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
+    if(password.match(pattern)){
+      resolve();
+    }
+    else {
+      reject("Password Not Valid");
+    }
+  });
+};
+
 function checkPassword(password, hash){
   /**
    * !seems to always return true;
@@ -390,6 +540,24 @@ function checkPassword(password, hash){
         else reject(false);//reject("Login Failed");
       })
   })
+};
+
+function isUsernameValid(username){
+  /**
+   * @param username a string given by the user as a potential username.
+   * 
+   * returns a promise that detects if a username follows the required pattern.
+   */
+  return new Promise((resolve, reject) => {
+    //can have uppercase, lowercase, numbers, _, ., and \,
+    // but not allow 2 punctuation marks to occur together
+    //or start/end with them. 
+    let pattern = /^(?=.*[a-zA-Z].*[a-zA-Z].*)\w(?!.*[._]{2,}|.*[._]$)(\w|[._]){4,15}$/;
+    if(username.match(pattern)){
+      resolve();
+    }
+    else reject("Username Has Invalid Format");
+  });
 };
 
 async function isUsernameAvailable(username){
@@ -424,6 +592,37 @@ async function checkUsernameInDB(sql, username){
   });
 };
 
+function buildUserToken(username){
+  /**
+   * @param username supplies a username to build a token after authentication.
+   * ? what should the token be comprised of?
+   * 
+   */
+
+  let token = {
+    username: username
+  };
+
+  token = JSON.stringify({token});
+  return encodeURI(token);
+
+};
+
+function authenticateToken(username, token){
+  /**
+   * @param token supplies a token from the user when making a request.
+   * Decrypts the token to verify the user making the request. 
+   */
+
+  let decryptToken = decodeURI(token);
+  let tokenUsername = decryptToken.username;
+
+  if (username === tokenUsername)
+    return true;
+    
+  else return false;
+}
+
 function insertInDB(sql, params){
   
   /**
@@ -455,68 +654,33 @@ function insertInDB(sql, params){
   }
 };
 
-function isUsernameValid(username){
+function insertTransaction(database, sql, params){
+  
   /**
-   * @param username a string given by the user as a potential username.
+   * This function is used as a partial function to let new functions
+   * use this insert behavior. 
+   * @param database specifies a database object to use
+   * @param sql takes a prepared statement.
+   * @param params supplies parameters for prepared statement
    * 
-   * returns a promise that detects if a username follows the required pattern.
+   * * EX: let newInsertFunction = insertInDB(sql,params);
+   * *     let message = await newInsertFunction(resMessage, rejMessage);
    */
-  return new Promise((resolve, reject) => {
-    //can have uppercase, lowercase, numbers, _, ., and \,
-    // but not allow 2 punctuation marks to occur together
-    //or start/end with them. 
-    let pattern = /^(?=.*[a-zA-Z].*[a-zA-Z].*)\w(?!.*[._]{2,}|.*[._]$)(\w|[._]){4,15}$/;
-    if(username.match(pattern)){
-      resolve();
-    }
-    else reject("Username Has Invalid Format");
-  });
+   
+  return(resMessage, rejMessage) =>{
+    /**
+     * @param resMessage supplies the message to return when resolved
+     * @param rejMessage supplies the message to return when rejected
+     */
+    return new Promise((resolve, reject) => {
+      database.run(sql, params, function(err){
+        if (err){
+          reject(`${rejMessage}`);
+        }
+        else{
+          resolve(`${resMessage}`)
+        }
+      });
+    })
+  }
 };
-
-function isPasswordValid(password){
-  /**
-   * @param password takes a string provided from the user as a potential password.
-   * 
-   * returns a promise which validates or rejects if the password matches the correct pattern.
-   */
-  return new Promise((resolve, reject) => {
-    let pattern = /^(?=.*\d)(?=.*[a-z])(?=.*[A-Z])(?=.*[a-zA-Z]).{8,}$/;
-    if(password.match(pattern)){
-      resolve();
-    }
-    else {
-      reject("Password Not Valid");
-    }
-  });
-};
-
-function buildUserToken(username){
-  /**
-   * @param username supplies a username to build a token after authentication.
-   * ? what should the token be comprised of?
-   * 
-   */
-
-  let token = {
-    username: username
-  };
-
-  token = JSON.stringify({token});
-  return encodeURI(token);
-
-};
-
-function authenticateToken(username, token){
-  /**
-   * @param token supplies a token from the user when making a request.
-   * Decrypts the token to verify the user making the request. 
-   */
-
-  let decryptToken = decodeURI(token);
-  let tokenUsername = decryptToken.username;
-
-  if (username === tokenUsername)
-    return true;
-    
-  else return false;
-}
