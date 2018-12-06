@@ -38,6 +38,12 @@ let myEvent2 ={
 
 function EventList(props){
   let events =[];
+  try{
+    events = props.events;
+  }
+  catch(err){
+
+  }
   //events.push(myEvent);
   //events.push(myEvent2);
 
@@ -303,6 +309,7 @@ class Home extends Component {
       popupActive : false,
       username: this.props.username,
       token: this.props.token,
+      events: [],
     }
     this.staticEvent = {
       username: this.props.username,
@@ -318,6 +325,7 @@ class Home extends Component {
       startTime: '',
       endTime: '',
     }
+    this.getUserEvents();
   }
 
   toggleCreateEvent = () => {
@@ -352,6 +360,7 @@ class Home extends Component {
     });
 
     const body = await response.text();
+    this.getUserEvents();
   }
 
   getUserEvents = async () => {
@@ -364,7 +373,8 @@ class Home extends Component {
     });
 
     const body = await response.text();
-    console.log(body);
+    let events = JSON.parse(body);
+    this.setState({events:events});
   }
 
 

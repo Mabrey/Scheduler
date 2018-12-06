@@ -144,7 +144,6 @@ app.post('/api/getUserEvents', async (request, response) => {
   let username = request.body.username;
   try{
     let events = await getUserEvents(username);
-    console.log(events);
     response.send(events);
   }catch(error){
     response.send(error);
@@ -235,7 +234,7 @@ app.post('/api/addEvent', async (request, response) => {
   try{
     userID = await getUserID(username);
     eventID = await getNextEventID();
-    console.log(eventID);
+    //console.log(eventID);
     if(isNaN(eventID))
       eventID = 1;
     let sql = `INSERT INTO event(eventID, userID, name, description) 
@@ -249,49 +248,13 @@ app.post('/api/addEvent', async (request, response) => {
     insertParameters = [eventID, startDate, endDate, startTime, endTime];
     insert = insertInDB(sql, insertParameters);
     createStatus = await insert("Event Successfully Added To Event Time", "Event Could Not be Added To Event Time");
-    console.log(createStatus);
+    //console.log(createStatus);
     response.send(createStatus);
   } catch(error){
     console.log(error)
     response.send("Unable To Complete Insertion");
   }
 
-
-  // try{
-  //   let transactionDB = await connectToDatabase();
-
-  //   try {
-  //     userID = await getUserID(username);
-  //     eventID = await getNextEventID();
-  //     transactionDB.serialize(async function() {
-  //       try{
-  //       transactionDB.run("BEGIN;");
-  //       let sql = `INSERT INTO event(eventID, userID, name, description) 
-  //               VALUES(?,?,?,?)`;
-  //       let insertParameters = [eventID, userID, name, description];
-  //       let insert = insertTransaction(transactionDB, sql, insertParameters);
-  //       await insert("Event Successfully Added To Event", "Event Could Not be Added To Event");
-        
-  //       sql = `INSERT INTO eventTimes(eventID, startDate, endDate, startTime, endTime)
-  //             VALUES(?,?,?,?)`;
-  //       insertParameters = [eventID, startDate, endDate, startTime, endTime];
-  //       insert = insertTransaction(transactionDB, sql, insertParameters);
-  //       createStatus = await insert("Event Successfully Added To Event Time", "Event Could Not be Added To Event Time");
-  //       transactionDB.run('COMMIT');
-  //       } catch(error){
-  //         response.send(error);
-  //       }
-  //     })
-      
-  //     response.send(`${createStatus}`);
-  //   } catch (error) {
-  //     transactionDB.run('ROLLBACK')
-  //     response.send(error);
-  //   }
-  // }
-  // catch(error){
-  //   response.send(error);
-  // }
 });
 
 app.post('/api/inputFlexEvent', async (request, response) =>{
@@ -299,6 +262,10 @@ app.post('/api/inputFlexEvent', async (request, response) =>{
 });
 
 app.post('/api/modifyEvent', async (request, response) =>{
+
+});
+
+app.post('/api/deleteEvent', async (request, response) => {
 
 });
 
@@ -369,17 +336,29 @@ function getUserEvents(username){
     try{
     let userID = await getUserID(username);
     let sql =
-     `CREATE VIEW events
-      AS SELECT event.eventID as id, name, description, startDate, endDate, startTime, endTime
+     `SELECT event.eventID as id, name, description, startDate, endDate, startTime, endTime
       FROM event, eventTimes
       WHERE userID = ? AND event.eventID = eventTimes.eventID;`;
     let events = [];
     let params = [userID];
+    events = await pullUserEventFromDB(sql, params);
+    //console.log(events);
+    resolve(events);
+  }catch(err){
+    reject(err);
+  }
+  })
+}
+
+function pullUserEventFromDB(sql, params){
+  return new Promise((resolve, reject) => {
+    let events = [];
     db.all(sql, params, (err, rows) => {
       if(err){
         reject(err);
       }
       rows.forEach((row) => {
+        
         let event ={
           eventID: row.id,
           name: row.name,
@@ -390,13 +369,12 @@ function getUserEvents(username){
           endTime: row.endTime,
         };
         events.push(event);
+        
       });
+      
+      resolve(events);
     });
-    resolve(events);
-  }catch(err){
-    reject(err);
-  }
-  })
+  });
 }
 
 async function getUserCount() {
